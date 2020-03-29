@@ -1,13 +1,13 @@
 // Pines utilizados
-#define LEDPir = 13;        // LED de encendido del PIR
-#define LEDSensor = 3;      // LED de encendido del Sensor Ultra sonido
+#define LEDPir 9     // LED de encendido del PIR
+#define LEDSensor 12      // LED de encendido del Sensor Ultra sonido
 
-#define LEDVerde = 2;       // LED de parqueo libre
-#define LEDRojo = 4;        // LED de parqueo no disponible
+#define LEDVerde 10       // LED de parqueo libre
+#define LEDRojo 11        // LED de parqueo no disponible
 
-#define PIRPin = 7;         // pin de entrada (for PIR sensor)
-#define TRIGGER 5           // pin de entrada Trigger del Sensor Ultrasonido
-#define ECHO 6              // pin de entrada Echo del Sensor Ultrasonido
+#define PIRPin 5       // pin de entrada (for PIR sensor)
+#define TRIGGER 6           // pin de entrada Trigger del Sensor Ultrasonido
+#define ECHO 7            // pin de entrada Echo del Sensor Ultrasonido
 
 //Constantes para el sensor PIR
 int pirState = LOW;           // de inicio no hay movimiento en el PIR
@@ -37,6 +37,8 @@ void setup() {
 }
 
 void loop() {
+
+  val = LOW;
   val = digitalRead(PIRPin);
 
   //Si está activado el sensor PIR
@@ -45,33 +47,31 @@ void loop() {
     //Encienda el LED de indicador de PIR
     digitalWrite(LEDPir, HIGH);
 
-    //si previamente estaba apagado el PIR
-    if (pirState == LOW) {
-      Serial.println("Sensor activado");
+    Serial.println("Sensor activado");
+    
+    digitalWrite(LEDSensor, HIGH);
+    //Se inicia el sensor de Ultrasonido
 
-      //Se inicia el sensor de Ultrasonido
+    // Preparamos el sensor de ultrasonidos
+    iniciarTrigger();
 
-      // Preparamos el sensor de ultrasonidos
-      iniciarTrigger();
+    // Obtenemos la distancia
+    float distancia = calcularDistancia();
 
-      // Obtenemos la distancia
-      float distancia = calcularDistancia();
+    // Apagamos todos los LEDs de parqueo
+    digitalWrite(LEDVerde, LOW);
+    digitalWrite(LEDRojo, LOW);
 
-      // Apagamos todos los LEDs de parqueo
-      digitalWrite(LEDVerde, LOW);
+    /* Si el sensor detecta que el objeto se encuentra en el umbral de parqueo*/
+    if (distancia < umbral1) {
+      // Revisamos el estado de los leds y alertas
+      parqueo(distancia);
+    } else {
+      //Si no, es porque el parqueadero esta libre
+      digitalWrite(LEDVerde, HIGH);
       digitalWrite(LEDRojo, LOW);
+      digitalWrite(LEDSensor, LOW);
 
-      /* Si el sensor detecta que el objeto se encuentra en el umbral de parqueo*/
-      if (distancia < umbral1) {
-        // Revisamos el estado de los leds y alertas
-        parqueo(distancia);
-      } else {
-        //Si no, es porque el parqueadero esta libre
-        digitalWrite(LEDVerde, HIGH);
-        digitalWrite(LEDRojo, LOW);
-      }
-
-      pirState = HIGH;
     }
   }
 
@@ -80,12 +80,9 @@ void loop() {
 
     //LED del PIR desactivado
     digitalWrite(LEDPir, LOW);
+    Serial.println("Sensor parado");
 
-    //Si previamente estaba encendido
-    if (pirState == HIGH) {
-      Serial.println("Sensor parado");
-      pirState = LOW;
-    }
+    
   }
 }
 
@@ -142,7 +139,7 @@ float calcularDistancia() {
   // La función pulseIn obtiene el tiempo que tarda en cambiar entre estados, en este caso a HIGH
   unsigned long tiempo = pulseIn(ECHO, HIGH);
 
-  // Obtenemos la distancia en cm, hay que convertir el tiempo en segudos ya que está en microsegundos
+  // Obtenemos la distancia en cm, hay que convertir el tiempo en segundos ya que está en microsegundos
   // por eso se multiplica por 0.000001
   float distancia = tiempo * 0.000001 * sonido / 2.0;
   Serial.print(distancia);
